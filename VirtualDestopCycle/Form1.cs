@@ -31,9 +31,11 @@ namespace VirtualDesktopManager
         private readonly HotKeyManager _numberHotkey;
 
         private bool closeToTray;
-
-        public Form1()
+        private readonly IConfiguration configuration;
+        
+        public Form1(IConfiguration configuration)
         {
+            this.configuration = configuration;
             InitializeComponent();
 
             handleChangedNumber();
@@ -239,34 +241,35 @@ namespace VirtualDesktopManager
         private void changeTrayIcon(int currentDesktopIndex = -1)
         {
             if (currentDesktopIndex == -1)
+            {
                 currentDesktopIndex = CurrentDesktopIndex;
-
-            var desktopNumber = currentDesktopIndex + 1;
-            var desktopNumberString = desktopNumber.ToString();
-
-            var fontSize = 250;
-            var xPlacement = 0;
-            var yPlacement = 0;
-
-            if (desktopNumber > 9 && desktopNumber < 100)
-            {
-                fontSize = 125;
-                xPlacement = 75;
-                yPlacement = 65;
             }
-            else if (desktopNumber > 99)
-            {
-                fontSize = 80;
-                xPlacement = 90;
-                yPlacement = 100;
-            }
-
-            Bitmap newIcon = Properties.Resources.mainIcoPng;
-            Font desktopNumberFont = new Font("Cascadia Mono", fontSize, FontStyle.Bold, GraphicsUnit.Pixel);
-
+            Bitmap newIcon = new Bitmap(256, 256);
+            var trayIcon = configuration.TrayIcon(currentDesktopIndex);
+            Font desktopNumberFont = new Font(
+                trayIcon.FontName,
+                trayIcon.FontSize,
+                trayIcon.FontStyle,
+                trayIcon.FontGraphicsUnit
+            );
+            // -- https://stackoverflow.com/questions/2991490/bad-text-rendering-using-drawstring-on-top-of-transparent-pixels
             var gr = Graphics.FromImage(newIcon);
-            gr.DrawString(desktopNumberString, desktopNumberFont, Brushes.White, xPlacement, yPlacement);
-
+            gr.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+            gr.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SingleBitPerPixelGridFit;
+            gr.DrawString(
+                trayIcon.Format(currentDesktopIndex + 1),
+                desktopNumberFont,
+                // FindFont(
+                //     gr,
+                //     trayIcon.Format(currentDesktopIndex + 1),
+                //     newIcon.Size,
+                //     desktopNumberFont,
+                //     trayIcon.FontGraphicsUnit
+                // ),
+                trayIcon.FontColor,
+                trayIcon.OffsetX,
+                trayIcon.OffsetY
+            );
             Icon numberedIcon = Icon.FromHandle(newIcon.GetHicon());
             notifyIcon1.Icon = numberedIcon;
 
@@ -276,6 +279,22 @@ namespace VirtualDesktopManager
             gr.Dispose();
         }
 
+        /// <summary>
+        /// calculates fontScale based on size (~it works, but it looks weird...)
+        /// </summary>
+        private Font FindFont(System.Drawing.Graphics g, string longString, Size size, Font font, GraphicsUnit unit)
+        {
+            SizeF realSize = g.MeasureString(longString, font);
+            float heightScaleRatio = size.Height / realSize.Height;
+            float widthScaleRatio = size.Width / realSize.Width;
+            float scaleRatio = (heightScaleRatio < widthScaleRatio
+                ? heightScaleRatio
+                : widthScaleRatio
+            );
+            float scaleFontSize = font.Size * scaleRatio;
+            return new Font(font.FontFamily, scaleFontSize + 0, font.Style, unit);
+        }
+        
         VirtualDesktop initialDesktopState()
         {
             var desktop = VirtualDesktop.Current;

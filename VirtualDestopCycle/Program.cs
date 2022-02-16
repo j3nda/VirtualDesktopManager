@@ -16,7 +16,7 @@ namespace VirtualDesktopManager
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            using (var form = new Form1())
+            using (var form = new Form1(new Configuration()))
             {
                 Application.Run(form);
             }
