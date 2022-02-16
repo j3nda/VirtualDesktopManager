@@ -105,6 +105,11 @@ namespace VirtualDesktopManager
 
         private void VirtualDesktop_CurrentChanged(object sender, VirtualDesktopChangedEventArgs e)
         {
+            RefreshCurrentDesktop();
+        }
+        
+        private void RefreshCurrentDesktop()
+        {
             // 0 == first
             int currentDesktopIndex = CurrentDesktopIndex;
 
@@ -124,7 +129,9 @@ namespace VirtualDesktopManager
             if (n == 0)
                 return null;
             int index = currentDesktopIndex % n;
-            return Properties.Settings.Default.DesktopBackgroundFiles[index];
+            var filename = Properties.Settings.Default.DesktopBackgroundFiles[index];
+            RefreshCurrentDesktop();
+            return filename;
         }
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
